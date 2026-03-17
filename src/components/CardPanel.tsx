@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer } from "react";
+import { useReducer, useState, useEffect } from "react";
 import Card from "./Card";
 
 interface Venue {
@@ -35,12 +35,33 @@ interface CardPanelProps {
   venues?: Venue[];
 }
 
-export default function CardPanel({ venues = DEFAULT_VENUES }: CardPanelProps) {
+export default function CardPanel({ venues: venuesProp }: CardPanelProps) {
+  const [venues, setVenues] = useState<Venue[]>(venuesProp ?? DEFAULT_VENUES);
+
   const [ratingMap, dispatch] = useReducer(
     ratingReducer,
-    venues,
+    DEFAULT_VENUES,
     (v) => new Map(v.map((venue) => [venue.name, 0]))
   );
+
+  useEffect(() => {
+    if (venuesProp) return;
+    if (typeof fetch === "undefined") return;
+    fetch("https://a08-venue-explorer-backend.vercel.app/api/v1/venues")
+      .then((r) => r.json())
+      .then((data) => {
+        if (data?.data) {
+          setVenues(
+            data.data.map((v: { name: string; picture: string; _id: string; id: string }) => ({
+              name: v.name,
+              picture: v.picture,
+              id: v._id || v.id,
+            }))
+          );
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   return (
     <div className="w-full">
